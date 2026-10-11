@@ -582,13 +582,17 @@ class Downloads extends ChangeNotifier {
           (throw Exception('No downloadable servers for this episode'));
       final dir = await _dir(d).create(recursive: true);
       var length = Duration.zero; // AniSkip takes any length for a single file
-      if (stream.isHls) {
-        length = await _saveHls(d, stream, dir);
-      } else {
-        await _saveFile(d, stream, dir);
+      // An extension's playlist may sit at an address without .m3u8: the file it sends says so.
+      final whole = !stream.isHls && await _saveFile(d, stream, dir);
+      if (!whole) {
+        length = await _saveHls(
+          d,
+          stream.isHls ? stream : stream.asPlaylist,
+          dir,
+        );
       }
       d.subtitles = await _saveSubtitles(stream, dir);
-      if (stream.isHls) note = await _toMp4(d, dir);
+      if (!whole) note = await _toMp4(d, dir);
       note ??= await _embedSubtitles(d, dir);
       final community = await aniSkip(d.media['idMal'], d.number, length);
       d
@@ -673,8 +677,9 @@ class Downloads extends ChangeNotifier {
     }
   }
 
-  /// Saves a server that's one whole file (an MP4) as the episode's video, resuming a part saved before.
-  Future<void> _saveFile(Download d, VideoStream stream, Directory dir) async {
+  /// Saves a server that's one whole file (an MP4) as the episode's video, resuming a part saved before. False,
+  /// with nothing saved, when what it sends is an HLS playlist after all.
+  Future<bool> _saveFile(Download d, VideoStream stream, Directory dir) async {
     // A part saved from another source is other video.
     await prepareHlsFiles(dir, '${d.source}\n${d.ref}');
     final video = '${d.name}.mp4';
@@ -703,6 +708,11 @@ class Downloads extends ChangeNotifier {
     try {
       await for (final chunk in response.stream) {
         if (_queue.cancelled) throw _Cancelled();
+        if (have == 0 && isPlaylist(chunk)) {
+          await sink.close();
+          await part.delete();
+          return false;
+        }
         sink.add(chunk);
         have += chunk.length;
         d.bytes = have;
@@ -720,8 +730,13 @@ class Downloads extends ChangeNotifier {
     if (total != null && have < total) {
       throw const HttpException('The download was cut short');
     }
+    if (!isVideoFile(await _head(part))) {
+      await part.delete();
+      throw Exception("This server didn't send a video");
+    }
     await part.rename('${dir.path}/$video');
     d.video = video;
+    return true;
   }
 
   /// Saves the best variant as index.m3u8 plus local files (4 at a time); returns the episode length.
@@ -827,6 +842,37 @@ class Downloads extends ChangeNotifier {
     } catch (e) {
       return 'Downloaded · subtitles not added to the MP4: $e';
     }
+  }
+}
+
+/// Whether the start of a download is an HLS playlist rather than video.
+@visibleForTesting
+bool isPlaylist(List<int> head) => utf8
+    .decode(head.take(64).toList(), allowMalformed: true)
+    .replaceFirst('\uFEFF', '')
+    .trimLeft()
+    .startsWith('#EXTM3U');
+
+/// Whether a file starts like a video players open: MP4/MOV, Matroska/WebM, MPEG-TS, AVI or FLV.
+@visibleForTesting
+bool isVideoFile(List<int> head) {
+  bool at(int i, List<int> bytes) =>
+      head.length >= i + bytes.length &&
+      [for (var j = 0; j < bytes.length; j++) head[i + j]].join() ==
+          bytes.join();
+  return at(4, 'ftyp'.codeUnits) ||
+      at(0, [0x1A, 0x45, 0xDF, 0xA3]) ||
+      at(0, [0x47]) ||
+      at(0, 'RIFF'.codeUnits) ||
+      at(0, 'FLV'.codeUnits);
+}
+
+Future<List<int>> _head(File file) async {
+  final raf = await file.open();
+  try {
+    return await raf.read(16);
+  } finally {
+    await raf.close();
   }
 }
 

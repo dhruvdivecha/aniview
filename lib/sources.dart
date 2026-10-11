@@ -143,6 +143,18 @@ class VideoStream {
   /// The AES-128 key the segments open with, when the site's own player works it out rather than fetching it.
   final Uint8List? key;
 
+  /// The same stream, known to be an HLS playlist though its address doesn't say.
+  VideoStream get asPlaylist => VideoStream(
+    label,
+    url,
+    headers,
+    subtitles: subtitles,
+    audios: audios,
+    skips: skips,
+    hls: true,
+    key: key,
+  );
+
   bool get isLocal => !url.startsWith('http'); // a downloaded episode on disk
   bool get isHls => _hls || Uri.parse(url).path.endsWith('.m3u8');
 }

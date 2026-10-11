@@ -59,6 +59,15 @@ void main() {
     expect(stream.isHls, isTrue);
   });
 
+  test('tells a playlist from a video by how a file starts', () {
+    expect(isPlaylist(utf8.encode('\uFEFF #EXTM3U\n#EXT-X-VERSION:3')), isTrue);
+    expect(isPlaylist([0, 0, 0, 32, ...'ftypisom'.codeUnits]), isFalse);
+    expect(isVideoFile([0, 0, 0, 32, ...'ftypisom'.codeUnits]), isTrue);
+    expect(isVideoFile([0x1A, 0x45, 0xDF, 0xA3, 1]), isTrue); // Matroska
+    expect(isVideoFile([0x47, 0x40, 0x11]), isTrue); // MPEG-TS
+    expect(isVideoFile(utf8.encode('<html>Forbidden')), isFalse);
+  });
+
   test('a saved MP4 is what plays, under the show\'s name', () {
     final original = Download(
       media: {
