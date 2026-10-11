@@ -58,6 +58,7 @@ void main() {
           'changelog_seen': changelogVersion,
           'theme_selection': 'materialDark',
           'follow_system_theme': true,
+          'welcome': false, // the greeting's wordmark is another logo
         });
         await Settings.load();
         isDesktop = desktop;

@@ -32,14 +32,14 @@ void main() {
     Widget app() => const MaterialApp(home: Welcome(child: _Home()));
     await tester.pumpWidget(app());
     expect(find.text('home'), findsOneWidget); // loads underneath
-    expect(find.text('Welcome back to AniView 🍿'), findsOneWidget);
+    expect(find.text('Welcome back'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
-    expect(find.text('Welcome back to AniView 🍿'), findsNothing);
+    expect(find.text('Welcome back'), findsNothing);
     expect(_built, 1); // the greeting going didn't build home again
 
     // Rebuilt (a layout change): not again.
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(app());
-    expect(find.text('Welcome back to AniView 🍿'), findsNothing);
+    expect(find.text('Welcome back'), findsNothing);
   });
 }
