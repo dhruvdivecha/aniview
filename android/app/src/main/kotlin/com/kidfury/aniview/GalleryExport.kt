@@ -12,6 +12,7 @@ import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.ExportResult
+import androidx.media3.transformer.InAppMp4Muxer
 import androidx.media3.transformer.Transformer
 import java.io.File
 
@@ -33,6 +34,9 @@ object GalleryExport {
             .setMimeType(MimeTypes.APPLICATION_M3U8)
             .build()
         Transformer.Builder(context)
+            // Android's MediaMuxer only splits a frame's slices at 4-byte start codes; TS often uses 3-byte ones, so
+            // every slice after the first was lost and the picture went green below its top strip.
+            .setMuxerFactory(InAppMp4Muxer.Factory())
             .addListener(object : Transformer.Listener {
                 override fun onCompleted(composition: Composition, exportResult: ExportResult) = done(null)
 
