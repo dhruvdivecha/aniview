@@ -6,31 +6,31 @@ import 'states.dart';
 import 'tv.dart';
 import 'ui.dart';
 
-const changelogVersion = '2.5.0-beta.8';
+const changelogVersion = '2.5.0';
 
 /// One change worth telling the person about: a short [title] and a sentence of [body].
 typedef ChangelogEntry = ({IconData icon, String title, String body});
 
 const changelogHighlights = <ChangelogEntry>[
   (
-    icon: Icons.sync_rounded,
-    title: 'MyAnimeList sign-in',
-    body: 'Track with AniList or MyAnimeList, one at a time. With MyAnimeList you get Schedule, airing times, new-episode alerts and your stats too.',
-  ),
-  (
-    icon: Icons.audiotrack_rounded,
-    title: 'Pick the audio',
-    body: 'Extension videos whose audio comes separately now play with sound, and the player lets you switch between audio tracks.',
-  ),
-  (
-    icon: Icons.waving_hand_rounded,
-    title: 'A hello when you open AniView',
-    body: 'AniView greets you by name as it opens. Turn it off in Settings → Appearance.',
-  ),
-  (
     icon: Icons.desktop_windows_rounded,
     title: 'AniView on your computer',
-    body: 'A new desktop app for Linux (AppImage), Windows and macOS, with its own layout, keyboard controls and player.',
+    body: 'A new desktop app for Windows, macOS and Linux, with its own layout, keyboard controls and player.',
+  ),
+  (
+    icon: Icons.sync_rounded,
+    title: 'MyAnimeList sign-in',
+    body: 'Track with AniList or MyAnimeList, one at a time. With MyAnimeList you also get Schedule, airing times, new-episode alerts and your stats.',
+  ),
+  (
+    icon: Icons.home_rounded,
+    title: 'A fuller Home',
+    body: 'Top rated, All-time popular, Coming soon and genre rows, with Continue watching on by default. AniView also greets you by name when it opens.',
+  ),
+  (
+    icon: Icons.download_done_rounded,
+    title: 'Downloads you can keep',
+    body: 'Each episode is saved as one MP4 with its subtitles inside, ready for any player. Extension episodes download too.',
   ),
   (
     icon: Icons.travel_explore_rounded,
@@ -38,14 +38,9 @@ const changelogHighlights = <ChangelogEntry>[
     body: 'ani.pm and AnimeStream, both with sub and dub. AnimeStream episodes can’t be downloaded yet.',
   ),
   (
-    icon: Icons.download_done_rounded,
-    title: 'Downloads you can keep',
-    body: 'Each episode saves as one MP4 with its subtitles inside, ready for any player. Extension episodes download too.',
-  ),
-  (
-    icon: Icons.build_rounded,
-    title: 'Fixes from the last beta',
-    body: 'Downloaded episodes play in AniView with sound on Android, extension downloads save properly, deleting one removes its gallery copy, and the opening animation fills the screen.',
+    icon: Icons.audiotrack_rounded,
+    title: 'Pick the audio',
+    body: 'Extension videos whose audio comes separately now play with sound, and you can switch between audio tracks.',
   ),
 ];
 
