@@ -401,18 +401,24 @@ ThemeData _buildMaterialTheme() {
       style: FilledButton.styleFrom(
         minimumSize: Size(64, buttonHeight),
         shape: controlShape,
+        // The original theme's label style, so switching themes can blend between them.
+        textStyle: typeScale.labelLarge?.copyWith(fontWeight: FontWeight.w500),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: Size(64, buttonHeight),
         shape: controlShape,
+        // The original theme's label style, so switching themes can blend between them.
+        textStyle: typeScale.labelLarge?.copyWith(fontWeight: FontWeight.w500),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         minimumSize: Size(64, buttonHeight),
         shape: controlShape,
+        // The original theme's label style, so switching themes can blend between them.
+        textStyle: typeScale.labelLarge?.copyWith(fontWeight: FontWeight.w500),
       ),
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
