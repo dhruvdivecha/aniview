@@ -6,7 +6,7 @@ import 'states.dart';
 import 'tv.dart';
 import 'ui.dart';
 
-const changelogVersion = '2.5.0-beta.6';
+const changelogVersion = '2.5.0-beta.7';
 
 /// One change worth telling the person about: a short [title] and a sentence of [body].
 typedef ChangelogEntry = ({IconData icon, String title, String body});
@@ -38,9 +38,14 @@ const changelogHighlights = <ChangelogEntry>[
     body: 'ani.pm and AnimeStream, both with sub and dub. AnimeStream episodes can’t be downloaded yet.',
   ),
   (
+    icon: Icons.download_done_rounded,
+    title: 'Downloads you can keep',
+    body: 'Each episode saves as one MP4 with its subtitles inside, ready for any player. Extension episodes download too.',
+  ),
+  (
     icon: Icons.build_rounded,
     title: 'Fixes from the last beta',
-    body: 'What’s new shows once, the TV sidebar opens from the left edge again, TVs offer every quality, and on a computer the app opens full size, a click shows the player’s controls and Skip stays put.',
+    body: 'Show titles in Romaji or English (Settings → Appearance), Continue watching is on by default, extension subtitles load everywhere, and switching themes no longer crashes.',
   ),
 ];
 
