@@ -115,18 +115,19 @@ class MainActivity : FlutterActivity() {
                         }
                     }
                     "external" -> playExternal(call.arguments as Map<*, *>, result)
-                    "mp4", "gallery" -> Thread {
+                    "mp4" -> GalleryExport.toMp4(
+                        this,
+                        java.io.File(call.argument<String>("dir")!!),
+                        java.io.File(call.argument<String>("out")!!),
+                    ) { error -> if (error == null) result.success(null) else result.error("mp4", error, null) }
+                    "gallery" -> Thread {
                         val error = try {
-                            if (call.method == "mp4") {
-                                GalleryExport.toMp4(this, java.io.File(call.argument<String>("dir")!!), java.io.File(call.argument<String>("out")!!))
-                            } else {
-                                GalleryExport.save(this, java.io.File(call.argument<String>("video")!!), call.argument<String>("name")!!)
-                            }
+                            GalleryExport.save(this, java.io.File(call.argument<String>("video")!!), call.argument<String>("name")!!)
                             null
                         } catch (e: Exception) {
-                            e.message ?: if (call.method == "mp4") "Couldn't make the MP4" else "Couldn't save to the gallery"
+                            e.message ?: "Couldn't save to the gallery"
                         }
-                        runOnUiThread { if (error == null) result.success(null) else result.error(call.method, error, null) }
+                        runOnUiThread { if (error == null) result.success(null) else result.error("gallery", error, null) }
                     }.start()
                     "open" -> {
                         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(call.arguments as String)))

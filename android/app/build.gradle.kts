@@ -75,6 +75,8 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:$media3")
     implementation("androidx.media3:media3-exoplayer-hls:$media3")
     implementation("androidx.media3:media3-exoplayer-dash:$media3")
+    // A download's HLS segments into one MP4, read the way the player reads them.
+    implementation("androidx.media3:media3-transformer:$media3")
     // What Aniyomi extensions are built against and expect the app to provide, at Aniyomi's versions.
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
     implementation("org.jsoup:jsoup:1.22.2")
