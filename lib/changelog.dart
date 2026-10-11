@@ -6,7 +6,7 @@ import 'states.dart';
 import 'tv.dart';
 import 'ui.dart';
 
-const changelogVersion = '2.5.0-beta.7';
+const changelogVersion = '2.5.0-beta.8';
 
 /// One change worth telling the person about: a short [title] and a sentence of [body].
 typedef ChangelogEntry = ({IconData icon, String title, String body});
@@ -45,7 +45,7 @@ const changelogHighlights = <ChangelogEntry>[
   (
     icon: Icons.build_rounded,
     title: 'Fixes from the last beta',
-    body: 'Show titles in Romaji or English (Settings → Appearance), Continue watching is on by default, extension subtitles load everywhere, and switching themes no longer crashes.',
+    body: 'Downloaded episodes play in AniView with sound on Android, extension downloads save properly, deleting one removes its gallery copy, and the opening animation fills the screen.',
   ),
 ];
 
