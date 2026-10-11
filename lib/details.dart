@@ -895,7 +895,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
     label: Text(newestFirst ? 'Newest first' : 'Oldest first'),
   );
 
-  /// Phones, atop the Episodes tab: the site and audio the episodes come from, and the fix for a wrong match.
+  /// Phones, atop the Episodes tab: the site and audio the episodes come from (the fix for a wrong match sits with
+  /// the episode order, see [_episodeControls]).
   Widget _episodeSource() => Padding(
     padding: EdgeInsets.fromLTRB(side, 16, side, 8),
     child: Column(
@@ -928,10 +929,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
         ),
         // Sites that failed to load say so across the whole width, not squeezed beside the audio.
         if (sitesError != null) ...[const SizedBox(height: 8), _sourceMenu()],
-        if (source != null && !isDesktop) ...[
-          const SizedBox(height: 4),
-          _wrongShow(),
-        ],
       ],
     ),
   );
@@ -1522,7 +1519,16 @@ class _DetailsScreenState extends State<DetailsScreen> {
           slivers: [
             if (isTv)
               const SliverToBoxAdapter(child: SectionHeader('Episodes')),
-            SliverToBoxAdapter(child: _episodeControls(list, plan)),
+            SliverToBoxAdapter(
+              child: _episodeControls(
+                list,
+                plan,
+                // Phones: beside the order, rather than a row of its own under the site.
+                wrongShow: !isTv && !isDesktop && source != null
+                    ? _wrongShow()
+                    : null,
+              ),
+            ),
             if (isTv)
               SliverToBoxAdapter(
                 child: ScrollAnchor(
@@ -1545,13 +1551,32 @@ class _DetailsScreenState extends State<DetailsScreen> {
     );
   }
 
-  /// The long-press tip until it's used or dismissed, the order, and pages for long shows.
+  /// The long-press tip until it's used or dismissed, the order, and pages for long shows. With [wrongShow] beside
+  /// the order, the pages get a line of their own.
   Widget _episodeControls(
     List<Episode> list,
     EpisodePlan plan, {
     Widget? extra,
+    Widget? wrongShow,
   }) {
     final pages = plan.pages;
+    final pageChips = SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.only(right: side),
+        itemCount: pages.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, i) => ChoiceChip(
+          label: Text(
+            '${epNumber(pages[i].first.number)}–${epNumber(pages[i].last.number)}',
+          ),
+          selected: i == plan.page,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          onSelected: (_) => setState(() => page = i),
+        ),
+      ),
+    );
     return Padding(
       padding: EdgeInsets.fromLTRB(side - 8, 0, 0, 8),
       child: Column(
@@ -1597,35 +1622,18 @@ class _DetailsScreenState extends State<DetailsScreen> {
                 ],
               ),
             ),
-          if (list.length > 1)
+          if (list.length > 1 || wrongShow != null)
             Row(
               children: [
                 // TV has it in the action row, with everything else the D-pad walks along.
-                if (!isTv) _orderButton(plan.newestFirst),
+                if (!isTv && list.length > 1) _orderButton(plan.newestFirst),
                 ?extra,
-                if (pages.length > 1)
-                  Expanded(
-                    child: SizedBox(
-                      height: 40,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: EdgeInsets.only(right: side),
-                        itemCount: pages.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 8),
-                        itemBuilder: (context, i) => ChoiceChip(
-                          label: Text(
-                            '${epNumber(pages[i].first.number)}–${epNumber(pages[i].last.number)}',
-                          ),
-                          selected: i == plan.page,
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                          onSelected: (_) => setState(() => page = i),
-                        ),
-                      ),
-                    ),
-                  ),
+                ?wrongShow,
+                if (pages.length > 1 && wrongShow == null)
+                  Expanded(child: pageChips),
               ],
             ),
+          if (pages.length > 1 && wrongShow != null) pageChips,
         ],
       ),
     );
