@@ -10,14 +10,32 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'desktop/sign_in.dart';
 import 'pairing.dart';
 import 'platform.dart';
+import 'settings.dart' show Settings, TitleLanguage;
 import 'tv.dart';
 
+/// The show's name in the language picked in Settings, falling back to whichever it has.
 String titleOf(Map media) {
   final titles = media['title'] as Map? ?? const {};
-  final english = titles['english'] as String?;
-  if (isTv && english != null && english.trim().isNotEmpty) return english;
-  return titles['userPreferred'] ?? titles['romaji'] ?? english ?? '';
+  String? named(String key) => switch (titles[key]) {
+    final String t when t.trim().isNotEmpty => t,
+    _ => null,
+  };
+  final english = named('english'), romaji = named('romaji');
+  return switch (Settings.titleLanguage) {
+        TitleLanguage.english => english ?? romaji,
+        TitleLanguage.romaji => romaji ?? english,
+        // TV has always read best in English; elsewhere, as the AniList account prefers.
+        TitleLanguage.auto when isTv => english ?? named('userPreferred'),
+        TitleLanguage.auto => named('userPreferred') ?? romaji ?? english,
+      } ??
+      '';
 }
+
+/// Every name the show goes by, for matching a typed filter whichever language it's shown in.
+Iterable<String> titlesOf(Map media) => {
+  for (final t in (media['title'] as Map? ?? const {}).values)
+    if (t is String) t,
+};
 
 /// A show as AniList describes it (MyAnimeList's answers are mapped to the same shape), read through the facts
 /// screens need instead of the JSON. A view over the map, not a copy: [Tracker] still updates the map itself.

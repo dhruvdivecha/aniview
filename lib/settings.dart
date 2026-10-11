@@ -116,6 +116,16 @@ enum ThemeSelection {
   }
 }
 
+/// Which of a show's names the app shows.
+enum TitleLanguage {
+  auto('Automatic'),
+  romaji('Romaji'),
+  english('English');
+
+  const TitleLanguage(this.label);
+  final String label;
+}
+
 /// Rows of the home screen, in their default order.
 enum HomeSection {
   featured('Featured', 'Trending shows at the top'),
@@ -240,8 +250,7 @@ class Settings {
         ]);
 
   /// Whether the desktop window opens maximized: at first, then as it was left.
-  static bool get windowMaximized =>
-      _prefs.getBool('window_maximized') ?? true;
+  static bool get windowMaximized => _prefs.getBool('window_maximized') ?? true;
   static set windowMaximized(bool v) => _prefs.setBool('window_maximized', v);
 
   /// Last site explicitly selected (here or on a show); empty means the highest ranked site.
@@ -310,6 +319,15 @@ class Settings {
       : _prefs.setStringList('search_shortcut', v);
 
   /// The greeting when the app opens (see [Welcome]), and the account name it last greeted.
+  /// Automatic: English on TV, else the AniList account's own choice.
+  static TitleLanguage get titleLanguage =>
+      TitleLanguage.values.asNameMap()[_loaded
+          ? _prefs.getString('title_language')
+          : null] ??
+      TitleLanguage.auto;
+  static set titleLanguage(TitleLanguage v) =>
+      _prefs.setString('title_language', v.name);
+
   static bool get welcome => _prefs.getBool('welcome') ?? true;
   static set welcome(bool v) => _prefs.setBool('welcome', v);
   static String? get welcomeName => _prefs.getString('welcome_name');
@@ -872,6 +890,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: const Text('Theme'),
           subtitle: Text(Settings.activeTheme.label),
           onTap: _pickTheme,
+        ),
+        _Choice(
+          title: 'Show titles in',
+          value: Settings.titleLanguage.label,
+          onTap: () => _choose(
+            'Show titles in',
+            {for (final l in TitleLanguage.values) l: l.label},
+            Settings.titleLanguage,
+            (v) {
+              Settings.titleLanguage = v;
+              // Every screen, the ones under this one too, names its shows again; nothing else is reset.
+              void rebuild(Element e) => e
+                ..markNeedsBuild()
+                ..visitChildren(rebuild);
+              WidgetsBinding.instance.rootElement?.visitChildren(rebuild);
+            },
+          ),
         ),
         SwitchListTile(
           title: const Text('Welcome screen'),

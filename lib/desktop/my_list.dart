@@ -82,7 +82,7 @@ class _DeskMyListState extends State<DeskMyList> {
     if (q.isNotEmpty) {
       shown = [
         for (final m in shown)
-          if (Show(m).title.toLowerCase().contains(q)) m,
+          if (titlesOf(m).any((t) => t.toLowerCase().contains(q))) m,
       ];
     }
     switch (sort) {

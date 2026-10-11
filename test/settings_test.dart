@@ -1,3 +1,4 @@
+import 'package:aniview/anilist.dart' show titleOf, titlesOf;
 import 'package:aniview/settings.dart';
 
 import 'dart:ui' show Brightness;
@@ -27,6 +28,38 @@ void main() {
     expect(Settings.homeSections.first, (HomeSection.sciFi, false));
     expect(Settings.homeSections.last, (HomeSection.trending, true));
   });
+
+  test(
+    'names shows in the picked language, falling back to the other',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      await Settings.load();
+      const show = {
+        'title': {
+          'userPreferred': 'Sousou no Frieren',
+          'romaji': 'Sousou no Frieren',
+          'english': 'Frieren: Beyond Journey’s End',
+        },
+      };
+      const noEnglish = {
+        'title': {
+          'userPreferred': 'Kusuriya',
+          'romaji': 'Kusuriya',
+          'english': null,
+        },
+      };
+      expect(
+        titleOf(show),
+        'Sousou no Frieren',
+      ); // automatic: the account's pick
+      Settings.titleLanguage = TitleLanguage.english;
+      expect(titleOf(show), 'Frieren: Beyond Journey’s End');
+      expect(titleOf(noEnglish), 'Kusuriya');
+      Settings.titleLanguage = TitleLanguage.romaji;
+      expect(titleOf(show), 'Sousou no Frieren');
+      expect(titlesOf(show), contains('Frieren: Beyond Journey’s End'));
+    },
+  );
 
   test(
     'turns Continue watching on once for saved layouts, then leaves it be',
