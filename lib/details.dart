@@ -1109,10 +1109,16 @@ class _DetailsScreenState extends State<DetailsScreen> {
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Artwork(
-                      show.cover,
-                      color: show.color,
-                      alignment: const Alignment(0, -.4),
+                    // Starting under the pinned header, whose band would hide the top of the art (often a face).
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: MediaQuery.paddingOf(context).top + kToolbarHeight,
+                      ),
+                      child: Artwork(
+                        show.cover,
+                        color: show.color,
+                        alignment: const Alignment(0, -.4),
+                      ),
                     ),
                     DecoratedBox(decoration: keyArtFade),
                     // The back and ⋮ buttons stay readable over any art.
