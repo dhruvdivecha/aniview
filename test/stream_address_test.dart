@@ -21,6 +21,10 @@ class FakeRelay implements Relay {
   @override
   Future<String> documentFile(String tree, String id, String file) async =>
       'doc:$tree:$id:$file';
+
+  @override
+  Future<String> documentVideo(String tree, String id, String file) async =>
+      'content:$tree:$id:$file';
 }
 
 void main() {
@@ -52,6 +56,22 @@ void main() {
       PlayableAddress('local:/data/downloads/7-1-sub:index.m3u8', hls: true),
     ),
     (
+      'saf mp4',
+      stream(saf.urlOf('Show - Episode 1.mp4'), [
+        Subtitle('English', saf.urlOf('sub0.vtt')),
+      ]),
+      PlayableAddress('content:$tree:7-1-sub:Show - Episode 1.mp4'),
+      PlayableAddress('content:$tree:7-1-sub:Show - Episode 1.mp4'),
+    ),
+    (
+      'local mp4',
+      stream(dir.urlOf('Show - Episode 1.mp4'), [
+        Subtitle('English', dir.urlOf('sub0.vtt')),
+      ]),
+      PlayableAddress('/data/downloads/7-1-sub/Show - Episode 1.mp4'),
+      PlayableAddress('local:/data/downloads/7-1-sub:Show - Episode 1.mp4'),
+    ),
+    (
       'remote HLS',
       stream('https://cdn/a/master.m3u8', [
         Subtitle('English', 'https://cdn/en.vtt'),
@@ -81,6 +101,11 @@ void main() {
       'doc:$tree:7-1-sub:sub0.vtt',
     ),
     'local file': (
+      '/data/downloads/7-1-sub/sub0.vtt',
+      'local:/data/downloads/7-1-sub:sub0.vtt',
+    ),
+    'saf mp4': ('doc:$tree:7-1-sub:sub0.vtt', 'doc:$tree:7-1-sub:sub0.vtt'),
+    'local mp4': (
       '/data/downloads/7-1-sub/sub0.vtt',
       'local:/data/downloads/7-1-sub:sub0.vtt',
     ),

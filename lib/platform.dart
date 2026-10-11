@@ -115,6 +115,14 @@ class AndroidApp {
     'file': file,
   });
 
+  /// The content:// address of [file] in a download in the picked folder.
+  static Future<String?> downloadFileUri(String tree, String id, String file) =>
+      _folder.invokeMethod<String>('uri', {
+        'tree': tree,
+        'id': id,
+        'file': file,
+      });
+
   static Future<void> deleteDownloadFolder(String tree, String id) =>
       _folder.invokeMethod('delete', {'tree': tree, 'id': id});
 
@@ -134,9 +142,13 @@ class AndroidApp {
     'subtitles': subtitles,
   });
 
-  /// Copies the downloaded episode in [dir] to the gallery as [name].
-  static Future<void> saveToGallery(String dir, String name) =>
-      _app.invokeMethod('gallery', {'dir': dir, 'name': name});
+  /// Remuxes the downloaded episode in [dir] (its index.m3u8 and segments) into the MP4 [out].
+  static Future<void> toMp4(String dir, String out) =>
+      _app.invokeMethod('mp4', {'dir': dir, 'out': out});
+
+  /// Copies the MP4 [video] to the gallery as [name].
+  static Future<void> saveToGallery(String video, String name) =>
+      _app.invokeMethod('gallery', {'video': video, 'name': name});
 
   /// The media volume, 0–1.
   static Future<double?> volume() => _volume.invokeMethod<double>('get');

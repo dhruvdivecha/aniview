@@ -89,6 +89,16 @@ Future<Stream<List<int>>> streamBytes(
   return Stream.value(await fetchBytes(url, headers: headers));
 }
 
+/// [url] answered as it arrives, whatever the status, for a caller saving a large file in parts (a Range header
+/// answered 206). HTTP/1.1 only.
+Future<http.StreamedResponse> openGet(
+  String url, {
+  Map<String, String>? headers,
+}) => httpClient.send(
+  http.Request('GET', Uri.parse(url))
+    ..headers.addAll({'User-Agent': userAgent, ...?headers}),
+);
+
 Future<Uint8List> fetchBytes(String url, {Map<String, String>? headers}) =>
     const HttpNet().bytes(url, headers: headers);
 

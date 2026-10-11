@@ -49,7 +49,7 @@ class HlsProxy {
       _dirs.add(dir);
       id = _dirs.length - 1;
     }
-    return 'http://127.0.0.1:$port/$_token/local/$id/$file';
+    return 'http://127.0.0.1:$port/$_token/local/$id/${Uri.encodeComponent(file)}';
   }
 
   /// Serves a file in an Android folder chosen through the system picker.
@@ -64,7 +64,7 @@ class HlsProxy {
       _documents.add((tree, id));
       index = _documents.length - 1;
     }
-    return 'http://127.0.0.1:$port/$_token/document/$index/$file';
+    return 'http://127.0.0.1:$port/$_token/document/$index/${Uri.encodeComponent(file)}';
   }
 
   // The upstream URL lives in the path (no query) so FFmpeg's segment-extension check sees `.ts`/`.m3u8`.
@@ -85,7 +85,8 @@ class HlsProxy {
         final file,
       ]) {
         // Playlist entries are relative, so segments and keys resolve to this same folder.
-        if (!RegExp(r'^\w[\w.-]*$').hasMatch(file)) {
+        // Any name in the folder itself ("[Oshi no Ko] - Episode 1.mp4"), never a way out of it.
+        if (!RegExp(r'^[^./\\][^/\\]*$').hasMatch(file)) {
           throw const FormatException();
         }
         if (file.endsWith('.m3u8')) {

@@ -2,7 +2,9 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'hls_proxy.dart';
+import 'platform.dart';
 import 'sources.dart';
+
 
 /// Where a download's files live: a folder in app storage, or a folder in an Android document tree picked in the
 /// system file picker. Owns the address format a [VideoStream] and its subtitles carry: a plain path, or
@@ -74,6 +76,9 @@ abstract interface class Relay {
   Future<String> localFile(String dir, String file);
 
   Future<String> documentFile(String tree, String id, String file);
+
+  /// A whole video (an MP4) in a picked folder, opened by players straight from the system.
+  Future<String> documentVideo(String tree, String id, String file);
 }
 
 class _HlsRelay implements Relay {
@@ -94,6 +99,12 @@ class _HlsRelay implements Relay {
   @override
   Future<String> documentFile(String tree, String id, String file) =>
       HlsProxy.documentFile(tree, id, file);
+
+
+  @override
+  Future<String> documentVideo(String tree, String id, String file) async =>
+      await AndroidApp.downloadFileUri(tree, id, file) ??
+      (throw const FileSystemException('Downloaded file is missing'));
 }
 
 /// Turns a [VideoStream] into the address a player opens: a document in a picked folder, a local file, an HLS
@@ -117,8 +128,10 @@ class StreamAddress {
     VideoStream stream, {
     required bool external,
   }) async => PlayableAddress(
-    stream.isHls ? await _route(stream, stream.url, external) : stream.url,
-    headers: stream.isHls ? null : stream.headers,
+    stream.isHls || stream.isLocal
+        ? await _route(stream, stream.url, external)
+        : stream.url,
+    headers: stream.isHls || stream.isLocal ? null : stream.headers,
     hls: stream.isHls,
     // Loaded with the video, so switching to one later needs no reload.
     subtitles: [
@@ -131,17 +144,22 @@ class StreamAddress {
     ],
   );
 
-  Future<String> _route(VideoStream stream, String url, bool external) =>
-      switch (DownloadLocation.parse(url)) {
-        (DocumentFolder(:final tree, :final id), final file) =>
-          relay.documentFile(tree, id, file),
-        (LocalFolder(:final path), final file) =>
-          external ? relay.localFile(path, file) : Future.value(url),
-        _ => relay.remote(
-          url,
-          stream.headers,
-          Uri.parse(url).path.split('.').last,
-          key: url == stream.url ? stream.key : null,
-        ),
-      };
+  Future<String> _route(VideoStream stream, String url, bool external) => switch (DownloadLocation.parse(url)) {
+    (DocumentFolder(:final tree, :final id), final file)
+        when file.endsWith('.mp4') =>
+      relay.documentVideo(tree, id, file),
+    (DocumentFolder(:final tree, :final id), final file) => relay.documentFile(
+      tree,
+      id,
+      file,
+    ),
+    (LocalFolder(:final path), final file) =>
+      external ? relay.localFile(path, file) : Future.value(url),
+    _ => relay.remote(
+      url,
+      stream.headers,
+      Uri.parse(url).path.split('.').last,
+      key: url == stream.url ? stream.key : null,
+    ),
+  };
 }

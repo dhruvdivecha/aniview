@@ -115,14 +115,18 @@ class MainActivity : FlutterActivity() {
                         }
                     }
                     "external" -> playExternal(call.arguments as Map<*, *>, result)
-                    "gallery" -> Thread {
+                    "mp4", "gallery" -> Thread {
                         val error = try {
-                            GalleryExport.save(this, java.io.File(call.argument<String>("dir")!!), call.argument<String>("name")!!)
+                            if (call.method == "mp4") {
+                                GalleryExport.toMp4(this, java.io.File(call.argument<String>("dir")!!), java.io.File(call.argument<String>("out")!!))
+                            } else {
+                                GalleryExport.save(this, java.io.File(call.argument<String>("video")!!), call.argument<String>("name")!!)
+                            }
                             null
                         } catch (e: Exception) {
-                            e.message ?: "Couldn't save to the gallery"
+                            e.message ?: if (call.method == "mp4") "Couldn't make the MP4" else "Couldn't save to the gallery"
                         }
-                        runOnUiThread { if (error == null) result.success(null) else result.error("gallery", error, null) }
+                        runOnUiThread { if (error == null) result.success(null) else result.error(call.method, error, null) }
                     }.start()
                     "open" -> {
                         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(call.arguments as String)))
@@ -145,7 +149,7 @@ class MainActivity : FlutterActivity() {
                             FOLDER_REQUEST,
                         )
                     }
-                    "export", "read", "delete" -> Thread {
+                    "export", "read", "uri", "delete" -> Thread {
                         try {
                             val tree = call.argument<String>("tree")!!
                             val id = call.argument<String>("id")!!
@@ -155,6 +159,7 @@ class MainActivity : FlutterActivity() {
                                     null
                                 }
                                 "read" -> DownloadFolder.read(this, tree, id, call.argument<String>("file")!!)
+                                "uri" -> DownloadFolder.find(this, tree, id, call.argument<String>("file")!!).uri.toString()
                                 else -> {
                                     DownloadFolder.delete(this, tree, id)
                                     null
@@ -241,6 +246,7 @@ class MainActivity : FlutterActivity() {
         val subtitles = args["subtitles"] as List<*>
         val intent = Intent(Intent.ACTION_VIEW)
             .setDataAndType(Uri.parse(args["url"] as String), "video/*")
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) // a download in a picked folder is a content:// file
             .putExtra("title", args["title"] as String)
             .putExtra("position", (args["position"] as Number).toInt())
             .putExtra("return_result", true)

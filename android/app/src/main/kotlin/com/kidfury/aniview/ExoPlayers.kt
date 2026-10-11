@@ -202,6 +202,7 @@ class ExoPlayers(private val context: Context, engine: FlutterEngine) {
 
         /** The labels of the audio files opened beside the video, in order (see [audioTracks]). */
         private var audioLabels = emptyList<String?>()
+        private var hideEmbeddedText = false
 
         fun open(
             url: String,
@@ -233,6 +234,8 @@ class ExoPlayers(private val context: Context, engine: FlutterEngine) {
             val video = sources.createMediaSource(item)
             // Audio that comes as files of its own plays alongside the picture, one at a time (see [audio]).
             audioLabels = audios.map { it["label"] }
+            // A download carries its subtitles twice: styled files beside it, and plain copies inside for other apps.
+            hideEmbeddedText = subtitles.isNotEmpty() && !url.startsWith("http")
             player.setMediaSource(
                 if (audios.isEmpty()) {
                     video
@@ -300,7 +303,10 @@ class ExoPlayers(private val context: Context, engine: FlutterEngine) {
         private fun textTracks(tracks: Tracks) = tracks.groups.withIndex()
             .filter { it.value.type == C.TRACK_TYPE_TEXT }
             .flatMap { (g, group) ->
-                (0 until group.length).map { i ->
+                (0 until group.length).filter { i ->
+                    val format = group.getTrackFormat(i)
+                    !hideEmbeddedText || MimeTypes.APPLICATION_TX3G !in listOf(format.sampleMimeType, format.codecs)
+                }.map { i ->
                     val format = group.getTrackFormat(i)
                     mapOf(
                         "id" to "$g:$i",

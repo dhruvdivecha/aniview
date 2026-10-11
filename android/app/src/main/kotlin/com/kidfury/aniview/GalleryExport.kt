@@ -16,36 +16,46 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * Copies a downloaded episode (a local HLS playlist of MPEG-TS segments, maybe AES-128 encrypted) into
- * Movies/AniView as an MP4 so it shows up in the gallery. The segments are decrypted and joined into one file,
- * then remuxed into MP4 without re-encoding.
+ * Turns a downloaded episode (a local HLS playlist of MPEG-TS segments, maybe AES-128 encrypted) into one MP4, and
+ * copies that into Movies/AniView so it shows up in the gallery. The segments are decrypted and joined into one
+ * file, then remuxed into MP4 without re-encoding.
  */
-// ponytail: MediaStore paths need Android 10+; older phones would need the storage permission flow
 object GalleryExport {
-    fun save(context: Context, dir: File, name: String) {
-        if (Build.VERSION.SDK_INT < 29) throw IllegalStateException("Saving to the gallery needs Android 10 or newer")
-        val joined = File(context.cacheDir, "gallery-${dir.name}.ts")
+    /** Writes the episode in [dir] to [out] as an MP4. */
+    fun toMp4(context: Context, dir: File, out: File) {
+        val joined = File(context.cacheDir, "mp4-${dir.name}.ts")
         try {
             join(dir, joined)
-            val resolver = context.contentResolver
-            val uri = resolver.insert(
-                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                ContentValues().apply {
-                    put(MediaStore.Video.Media.DISPLAY_NAME, "$name.mp4")
-                    put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-                    put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/AniView")
-                    put(MediaStore.Video.Media.IS_PENDING, 1)
-                },
-            ) ?: throw IllegalStateException("Couldn't create the gallery file")
-            try {
-                resolver.openFileDescriptor(uri, "rw")!!.use { remux(joined, it.fileDescriptor) }
-                resolver.update(uri, ContentValues().apply { put(MediaStore.Video.Media.IS_PENDING, 0) }, null, null)
-            } catch (e: Exception) {
-                resolver.delete(uri, null, null)
-                throw e
-            }
+            out.delete()
+            java.io.RandomAccessFile(out, "rw").use { remux(joined, it.fd) }
+        } catch (e: Exception) {
+            out.delete()
+            throw e
         } finally {
             joined.delete()
+        }
+    }
+
+    // ponytail: MediaStore paths need Android 10+; older phones would need the storage permission flow
+    /** Copies the MP4 [video] into the gallery as [name]. */
+    fun save(context: Context, video: File, name: String) {
+        if (Build.VERSION.SDK_INT < 29) throw IllegalStateException("Saving to the gallery needs Android 10 or newer")
+        val resolver = context.contentResolver
+        val uri = resolver.insert(
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            ContentValues().apply {
+                put(MediaStore.Video.Media.DISPLAY_NAME, "$name.mp4")
+                put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+                put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/AniView")
+                put(MediaStore.Video.Media.IS_PENDING, 1)
+            },
+        ) ?: throw IllegalStateException("Couldn't create the gallery file")
+        try {
+            resolver.openOutputStream(uri, "w")!!.use { output -> video.inputStream().use { it.copyTo(output) } }
+            resolver.update(uri, ContentValues().apply { put(MediaStore.Video.Media.IS_PENDING, 0) }, null, null)
+        } catch (e: Exception) {
+            resolver.delete(uri, null, null)
+            throw e
         }
     }
 

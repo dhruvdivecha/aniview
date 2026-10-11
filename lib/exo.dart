@@ -105,6 +105,10 @@ class _MpvBackend extends PlayerBackend {
   final mk.Player _mpv = _sharedMpv ??= mk.Player();
   bool _disposed = false;
 
+  /// A download carries its subtitles twice: styled files beside it, and plain copies inside (mov_text) for other
+  /// apps. Only the files are listed.
+  bool _hideEmbedded = false;
+
   @override
   VideoController? video;
 
@@ -136,7 +140,9 @@ class _MpvBackend extends PlayerBackend {
           ],
           'tracks': [
             for (final t in t.subtitle)
-              if (t.id != 'auto' && t.id != 'no')
+              if (t.id != 'auto' &&
+                  t.id != 'no' &&
+                  !(_hideEmbedded && t.codec == 'mov_text'))
                 {'id': t.id, 'title': t.title, 'language': t.language},
           ],
         }),
@@ -161,6 +167,9 @@ class _MpvBackend extends PlayerBackend {
     final mpv = _mpv;
     switch (method) {
       case 'open':
+        _hideEmbedded =
+            (args['subtitles']! as List).isNotEmpty &&
+            !(args['url']! as String).startsWith('http');
         await mpv.open(
           mk.Media(
             args['url']! as String,

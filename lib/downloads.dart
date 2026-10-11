@@ -14,6 +14,7 @@ import 'site_listing.dart';
 import 'sources.dart';
 import 'states.dart';
 import 'stream_address.dart';
+import 'subtitles.dart';
 import 'platform.dart';
 
 enum DownloadStatus { queued, downloading, done, failed }
@@ -34,6 +35,7 @@ class Download {
     this.subtitles = const [],
     this.skips = const [],
     this.storageUri,
+    this.video,
   });
 
   final Map media;
@@ -49,6 +51,14 @@ class Download {
   List<Subtitle> subtitles; // file names inside the download folder
   List<SkipTime> skips;
   String? storageUri;
+
+  /// The episode's MP4 inside its folder; null while it's still (or, made before MP4s, only) an HLS playlist.
+  String? video;
+
+  /// "Title - Episode 3 (Dub)", safe as a file name.
+  String get name =>
+      '${titleOf(media)} - Episode ${epNumber(number)}${dub ? ' (Dub)' : ''}'
+          .replaceAll(RegExp(r'[\\/:*?"<>|]'), '');
 
   String get id => '${media['id']}-${epNumber(number)}-${dub ? 'dub' : 'sub'}';
 
@@ -68,6 +78,7 @@ class Download {
     'bytes': bytes,
     'error': error,
     'storageUri': storageUri,
+    'video': video,
     'subtitles': [
       for (final s in subtitles) {'label': s.label, 'file': s.url},
     ],
@@ -96,6 +107,7 @@ class Download {
     bytes: json['bytes'] ?? 0,
     error: json['error'],
     storageUri: json['storageUri'],
+    video: json['video'],
     subtitles: [
       for (final s in json['subtitles'] as List? ?? const [])
         Subtitle(s['label'], s['file']),
@@ -400,7 +412,7 @@ class Downloads extends ChangeNotifier {
         : DocumentFolder(d.storageUri!, d.id);
     return VideoStream(
       'Downloaded',
-      where.urlOf('index.m3u8'),
+      where.urlOf(d.video ?? 'index.m3u8'),
       const {},
       subtitles: [
         for (final s in d.subtitles) Subtitle(s.label, where.urlOf(s.url)),
@@ -562,13 +574,22 @@ class Downloads extends ChangeNotifier {
       if (streams.isEmpty) {
         throw Exception('No ${d.dub ? 'dub' : 'sub'} servers for this episode');
       }
-      // Only HLS is saved; direct mp4 servers can still be streamed.
+      // HLS first (sites), else a single file (often an extension's). Audio served as a file of its own isn't saved,
+      // so those servers are passed over rather than saved silent.
       final stream =
-          streams.where((s) => s.isHls).firstOrNull ??
+          streams.where((s) => s.isHls && s.audios.isEmpty).firstOrNull ??
+          streams.where((s) => s.audios.isEmpty).firstOrNull ??
           (throw Exception('No downloadable servers for this episode'));
       final dir = await _dir(d).create(recursive: true);
-      final length = await _saveHls(d, stream, dir);
+      var length = Duration.zero; // AniSkip takes any length for a single file
+      if (stream.isHls) {
+        length = await _saveHls(d, stream, dir);
+      } else {
+        await _saveFile(d, stream, dir);
+      }
       d.subtitles = await _saveSubtitles(stream, dir);
+      if (stream.isHls) note = await _toMp4(d, dir);
+      note ??= await _embedSubtitles(d, dir);
       final community = await aniSkip(d.media['idMal'], d.number, length);
       d
         ..skips = community.isNotEmpty ? community : stream.skips
@@ -583,7 +604,9 @@ class Downloads extends ChangeNotifier {
         d.storageUri = Settings.downloadFolder;
       }
       _queue.markDone(d);
-      if (Settings.saveToGallery) note = await _saveToGallery(d, dir);
+      if (Settings.saveToGallery && d.video != null) {
+        note = await _saveToGallery(d, dir);
+      }
       if (d.storageUri != null) await dir.delete(recursive: true);
     } catch (e) {
       _queue.markFailed(
@@ -602,19 +625,103 @@ class Downloads extends ChangeNotifier {
     }
   }
 
-  /// Copies a finished episode to the gallery; returns why it couldn't, or null.
-  Future<String?> _saveToGallery(Download d, Directory dir) async {
-    final name =
-        '${titleOf(d.media)} - Episode ${epNumber(d.number)}${d.dub ? ' (Dub)' : ''}'
-            .replaceAll(RegExp(r'[\\/:*?"<>|]'), '');
+  /// Joins the saved segments into one MP4 (no re-encoding) and drops them; returns why it couldn't, or null. An
+  /// episode that couldn't be joined stays an HLS playlist, which still plays.
+  Future<String?> _toMp4(Download d, Directory dir) async {
+    final video = '${d.name}.mp4';
+    final out = '${dir.path}/$video';
     try {
-      await AndroidApp.saveToGallery(dir.path, name);
+      if (Platform.isAndroid) {
+        await AndroidApp.toMp4(dir.path, out);
+      } else {
+        // ponytail: desktop leans on the system's ffmpeg; without one on PATH the episode stays HLS. Bundle an
+        // ffmpeg (or a Dart TS-to-MP4 remuxer) if that's common on Windows/macOS.
+        final run = await Process.run('ffmpeg', [
+          '-y', '-v', 'error', '-allowed_extensions', 'ALL', //
+          '-i', 'index.m3u8', '-map', '0:v?', '-map', '0:a?', //
+          '-c', 'copy', '-movflags', '+faststart', './$video',
+        ], workingDirectory: dir.path);
+        if (run.exitCode != 0) throw Exception('${run.stderr}'.trim());
+      }
+    } on ProcessException {
+      return 'Downloaded · kept as HLS: install ffmpeg to save MP4s';
+    } catch (e) {
+      if (await File(out).exists()) await File(out).delete();
+      return 'Downloaded · not saved as MP4: ${e is PlatformException ? e.message : e}';
+    }
+    final keep = {video, for (final s in d.subtitles) s.url};
+    for (final file in await dir.list().toList()) {
+      if (!keep.contains(file.uri.pathSegments.last)) {
+        await file.delete(recursive: true);
+      }
+    }
+    d
+      ..video = video
+      ..bytes = await File(out).length();
+    return null;
+  }
+
+  /// Copies a finished episode's MP4 to the gallery; returns why it couldn't, or null.
+  Future<String?> _saveToGallery(Download d, Directory dir) async {
+    try {
+      await AndroidApp.saveToGallery('${dir.path}/${d.video}', d.name);
       return 'Downloaded · saved to gallery';
     } on PlatformException catch (e) {
       return 'Downloaded · not saved to gallery: ${e.message}';
     } on MissingPluginException {
       return null; // not on Android
     }
+  }
+
+  /// Saves a server that's one whole file (an MP4) as the episode's video, resuming a part saved before.
+  Future<void> _saveFile(Download d, VideoStream stream, Directory dir) async {
+    // A part saved from another source is other video.
+    await prepareHlsFiles(dir, '${d.source}\n${d.ref}');
+    final video = '${d.name}.mp4';
+    final part = File('${dir.path}/$video.part');
+    var have = await part.exists() ? await part.length() : 0;
+    final response = await openGet(
+      stream.url,
+      headers: {...stream.headers, if (have > 0) 'Range': 'bytes=$have-'},
+    );
+    if (response.statusCode == 200) {
+      have = 0; // the host ignored the range: start over
+    } else if (response.statusCode != 206) {
+      await response.stream.drain<void>();
+      throw HttpException(
+        'HTTP ${response.statusCode}',
+        uri: Uri.parse(stream.url),
+      );
+    }
+    final total = response.contentLength == null
+        ? null
+        : have + response.contentLength!;
+    final sink = part.openWrite(
+      mode: have > 0 ? FileMode.append : FileMode.write,
+    );
+    var shown = -1;
+    try {
+      await for (final chunk in response.stream) {
+        if (_queue.cancelled) throw _Cancelled();
+        sink.add(chunk);
+        have += chunk.length;
+        d.bytes = have;
+        // ponytail: no total (chunked replies) leaves the bar at 0 until done
+        if (total != null && total > 0) d.progress = have / total;
+        // A chunk is a few KB: the screen and notification hear of every 0.2% instead.
+        if ((d.progress * 500).floor() != shown) {
+          shown = (d.progress * 500).floor();
+          _notify();
+        }
+      }
+    } finally {
+      await sink.close();
+    }
+    if (total != null && have < total) {
+      throw const HttpException('The download was cut short');
+    }
+    await part.rename('${dir.path}/$video');
+    d.video = video;
   }
 
   /// Saves the best variant as index.m3u8 plus local files (4 at a time); returns the episode length.
@@ -679,19 +786,47 @@ class Downloads extends ChangeNotifier {
     VideoStream stream,
     Directory dir,
   ) async {
-    final wanted = {Settings.subtitleLanguage, 'English'};
+    // The language picked in Settings and English, however a site or extension names them ("en-US", "eng").
+    final wanted = {languageCode(Settings.subtitleLanguage), 'eng'}
+      ..remove('und');
     final saved = <Subtitle>[];
     for (final subtitle in stream.subtitles.where(
-      (s) => wanted.any(s.label.startsWith),
+      (s) =>
+          wanted.contains(languageCode(s.label)) ||
+          s.label.startsWith(Settings.subtitleLanguage),
     )) {
       try {
-        final name = 'sub${saved.length}.vtt';
-        await File('${dir.path}/$name')
-            .writeAsBytes(await _fetchWithRetry(subtitle.url, stream.headers));
+        final bytes = await _fetchWithRetry(subtitle.url, stream.headers);
+        // Saved as what it is (an extension's .ass stays .ass), so players read it as such.
+        final name =
+            'sub${saved.length}.${subtitleExtOf(subtitle.url) ?? sniffSubtitle(bytes)}';
+        await File('${dir.path}/$name').writeAsBytes(bytes);
         saved.add(Subtitle(subtitle.label, name));
       } catch (_) {} // subtitles are optional for offline playback
     }
     return saved;
+  }
+
+  /// Puts the saved subtitles inside the episode's MP4 too, as plain text, so it carries them to any player; the
+  /// files stay beside it for ours, with their styling. Returns why it couldn't, or null.
+  Future<String?> _embedSubtitles(Download d, Directory dir) async {
+    if (d.video == null || d.subtitles.isEmpty) return null;
+    try {
+      await embedSubtitles('${dir.path}/${d.video}', [
+        for (final s in d.subtitles)
+          (
+            s.label,
+            parseCues(
+              await File('${dir.path}/${s.url}').readAsString(),
+              s.url.split('.').last,
+            ),
+          ),
+      ]);
+      d.bytes = await File('${dir.path}/${d.video}').length();
+      return null;
+    } catch (e) {
+      return 'Downloaded · subtitles not added to the MP4: $e';
+    }
   }
 }
 

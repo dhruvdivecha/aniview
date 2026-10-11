@@ -58,6 +58,29 @@ void main() {
     expect(stream.isLocal, isTrue);
     expect(stream.isHls, isTrue);
   });
+
+  test('a saved MP4 is what plays, under the show\'s name', () {
+    final original = Download(
+      media: {
+        'id': 7,
+        'title': {'romaji': 'Frieren: Beyond'},
+      },
+      source: 'Anikoto',
+      number: 12,
+      dub: true,
+      ref: 'r',
+      status: DownloadStatus.done,
+    );
+    expect(original.name, 'Frieren Beyond - Episode 12 (Dub)');
+    original.video = '${original.name}.mp4';
+    final restored = readIndex(jsonEncode([original.toJson()])).single;
+    final stream = Downloads.instance.streamFor(restored);
+    expect(
+      stream.url,
+      endsWith('/7-12-dub/Frieren Beyond - Episode 12 (Dub).mp4'),
+    );
+    expect(stream.isHls, isFalse);
+  });
 }
 
 void desktopFolderTests() {
