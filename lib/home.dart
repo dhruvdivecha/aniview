@@ -1451,10 +1451,16 @@ class _FeaturedPage extends StatelessWidget {
                   child: child,
                 );
               },
-              child: Artwork(
-                Show(media).cover,
-                color: Show(media).color,
-                alignment: Alignment.topCenter,
+              // Starting under the pinned header, whose solid band would hide the top of the art (often a face).
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.paddingOf(context).top + kToolbarHeight,
+                ),
+                child: Artwork(
+                  Show(media).cover,
+                  color: Show(media).color,
+                  alignment: Alignment.topCenter,
+                ),
               ),
             ),
           ),
