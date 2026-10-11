@@ -167,7 +167,7 @@ enum HomeSection {
 
   /// On until the user changes the sections; the rest start off.
   bool get byDefault =>
-      const {featured, airing, season, trending}.contains(this);
+      const {featured, airing, watching, season, trending}.contains(this);
 }
 
 /// The player's picture modes, in the order its button cycles through them.
@@ -185,6 +185,15 @@ class Settings {
   static Future<void> load() async {
     _prefs = await SharedPreferences.getInstance();
     _loaded = true;
+    // Continue watching started off before it was on by default; turn it on once for those who saved it off.
+    if (!(_prefs.getBool('watching_on_migrated') ?? false)) {
+      if (_prefs.getStringList('home_sections') case final saved?) {
+        await _prefs.setStringList('home_sections', [
+          for (final name in saved) name == '-watching' ? 'watching' : name,
+        ]);
+      }
+      await _prefs.setBool('watching_on_migrated', true);
+    }
   }
 
   /// The original AniView theme remains the default for existing installs.

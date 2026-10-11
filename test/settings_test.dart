@@ -28,6 +28,21 @@ void main() {
     expect(Settings.homeSections.last, (HomeSection.trending, true));
   });
 
+  test(
+    'turns Continue watching on once for saved layouts, then leaves it be',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'home_sections': ['trending', '-watching'],
+      });
+      await Settings.load();
+      expect(Settings.homeSections, contains((HomeSection.watching, true)));
+
+      Settings.homeSections = [(HomeSection.watching, false)];
+      await Settings.load();
+      expect(Settings.homeSections, contains((HomeSection.watching, false)));
+    },
+  );
+
   testWidgets('follows the phone\'s light and dark mode when asked to', (
     tester,
   ) async {
