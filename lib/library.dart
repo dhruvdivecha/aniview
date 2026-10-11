@@ -930,8 +930,6 @@ class _NextUp extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Eyebrow('Next up · ${_until(at)}'),
-                  const SizedBox(height: 4),
                   Text(
                     show.title,
                     maxLines: 1,
@@ -939,7 +937,7 @@ class _NextUp extends StatelessWidget {
                     style: text.titleLarge,
                   ),
                   Text(
-                    'EP ${slot['episode']} · ${_time(context, at)}',
+                    'EP ${slot['episode']} · ${_time(context, at)} · ${_until(at)}',
                     style: text.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),

@@ -184,8 +184,6 @@ extension _DeskDetails on _DetailsScreenState {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (_eyebrow case final eyebrow?) Eyebrow(eyebrow),
-                        const SizedBox(height: 8),
                         Text(
                           titleOf(media),
                           maxLines: 3,

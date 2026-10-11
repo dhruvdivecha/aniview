@@ -1466,8 +1466,6 @@ class _FeaturedPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Eyebrow(['Trending #$rank', ?airingLabel(media)].join(' · ')),
-                const SizedBox(height: 8),
                 Text(
                   titleOf(media),
                   maxLines: 2,
@@ -1576,10 +1574,6 @@ class _Immersive extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              if (show.genres.isNotEmpty) ...[
-                Eyebrow(show.genres.take(3).join(' · ')),
-                const SizedBox(height: 8),
-              ],
               Text(
                 titleOf(media),
                 maxLines: 2,

@@ -942,7 +942,7 @@ class _DeskHeroState extends State<DeskHero> {
               itemCount: widget.items.length,
               onPageChanged: (i) => setState(() => page = i),
               itemBuilder: (context, i) =>
-                  _HeroPage(widget.items[i], i + 1, widget.onChanged),
+                  _HeroPage(widget.items[i], widget.onChanged),
             ),
             if (widget.items.length > 1) ...[
               Positioned(
@@ -992,10 +992,9 @@ class _DeskHeroState extends State<DeskHero> {
 }
 
 class _HeroPage extends StatelessWidget {
-  const _HeroPage(this.media, this.rank, this.onChanged);
+  const _HeroPage(this.media, this.onChanged);
 
   final Map media;
-  final int rank;
   final VoidCallback? onChanged;
 
   @override
@@ -1048,8 +1047,6 @@ class _HeroPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Eyebrow(['Trending #$rank', ?airingLabel(media)].join(' · ')),
-              const SizedBox(height: 10),
               Text(
                 show.title,
                 maxLines: 2,

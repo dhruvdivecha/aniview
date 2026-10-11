@@ -79,9 +79,9 @@ void main() {
     ]);
 
     expect(
-      find.textContaining('NEXT UP'),
+      find.textContaining(' · in '),
       findsOneWidget,
-    ); // its eyebrow, upper-cased
+    ); // the card's countdown
     await tester.longPress(_card('Show 1'));
     await tester.pumpAndSettle();
     expect(find.text('1 selected'), findsOneWidget);

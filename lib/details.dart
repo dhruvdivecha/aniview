@@ -709,20 +709,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
   Show get show => Show(media);
   int get _progress => show.progress;
 
-  /// "Fall 2026 · TV", above the title.
-  String? get _eyebrow {
-    final season = media['season'] as String?;
-    final parts = [
-      if (season != null)
-        '${season[0]}${season.substring(1).toLowerCase()} ${media['seasonYear'] ?? ''}'
-            .trim()
-      else if (media['seasonYear'] != null)
-        '${media['seasonYear']}',
-      (media['format'] as String?)?.replaceAll('_', ' '),
-    ].whereType<String>();
-    return parts.isEmpty ? null : parts.join(' · ');
-  }
-
   /// The main button, as [EpisodePlan.nextUp] decides: back to the saved spot, else the next unwatched episode
   /// on the chosen site.
   ///
@@ -1141,8 +1127,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (_eyebrow case final eyebrow?) Eyebrow(eyebrow),
-                          const SizedBox(height: 8),
                           Text(
                             titleOf(media),
                             maxLines: 3,
@@ -1325,10 +1309,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (_eyebrow case final eyebrow?) ...[
-                                  Eyebrow(eyebrow),
-                                  const SizedBox(height: 8),
-                                ],
                                 Text(
                                   titleOf(media),
                                   maxLines: 2,

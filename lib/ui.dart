@@ -540,34 +540,6 @@ List<BoxShadow> accentGlow([double alpha = .35, double blur = 24]) => [
   ),
 ];
 
-/// A small uppercase line in the accent above a title: what's new, when it airs, which season.
-class Eyebrow extends StatelessWidget {
-  const Eyebrow(this.label, {super.key});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Text(
-      label.toUpperCase(),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-        color: colors.primary,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.2,
-        shadows: colors.brightness == Brightness.dark
-            ? const [
-                Shadow(color: Colors.black87, blurRadius: 8),
-                Shadow(color: Colors.black54, blurRadius: 2),
-              ]
-            : null,
-      ),
-    );
-  }
-}
-
 /// Fades and lifts its child in the first time it's built, [index] steps (of 40ms, up to 8) after the first, so
 /// a row or grid arrives in a quick cascade. Still when animations are off.
 class FadeIn extends StatelessWidget {

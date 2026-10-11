@@ -90,41 +90,6 @@ void main() {
     );
   }
 
-  testWidgets('light hero labels stay clear over artwork', (tester) async {
-    // Home shows the what's-new dialog on a version's first launch; these tests start past it.
-    SharedPreferences.setMockInitialValues({
-      'changelog_seen': changelogVersion,
-    });
-    await Settings.load();
-    addTearDown(() => Settings.themeSelection = ThemeSelection.custom);
-
-    for (final choice in [
-      ThemeSelection.materialLight,
-      ThemeSelection.violetLight,
-      ThemeSelection.forestLight,
-    ]) {
-      Settings.themeSelection = choice;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: buildTheme(),
-          home: const Scaffold(body: Eyebrow('Trending')),
-        ),
-      );
-
-      final label = tester.widget<Text>(find.text('TRENDING'));
-      expect(label.style?.shadows, isNull);
-      final fade = keyArtFade.gradient! as LinearGradient;
-      final background = Color.alphaBlend(fade.colors[3], Colors.black);
-      final foreground = label.style!.color!;
-      final brighter = [
-        foreground.computeLuminance(),
-        background.computeLuminance(),
-      ]..sort();
-      final contrast = (brighter.last + .05) / (brighter.first + .05);
-      expect(contrast, greaterThanOrEqualTo(4.5), reason: choice.name);
-    }
-  });
-
   testWidgets('theme colors change together without a mixed-color frame', (
     tester,
   ) async {
