@@ -4,7 +4,14 @@ import 'dart:typed_data';
 import 'hls_proxy.dart';
 import 'platform.dart';
 import 'sources.dart';
+import 'subtitles.dart';
 
+/// A file's own extension, for the relay address ("bin" when the address has none: `…/audio?id=3`).
+String _extOf(String url) {
+  final last = Uri.parse(url).pathSegments.lastOrNull ?? '';
+  final ext = last.contains('.') ? last.split('.').last.toLowerCase() : '';
+  return RegExp(r'^[a-z0-9]{1,5}$').hasMatch(ext) ? ext : 'bin';
+}
 
 /// Where a download's files live: a folder in app storage, or a folder in an Android document tree picked in the
 /// system file picker. Owns the address format a [VideoStream] and its subtitles carry: a plain path, or
@@ -79,6 +86,9 @@ abstract interface class Relay {
 
   /// A whole video (an MP4) in a picked folder, opened by players straight from the system.
   Future<String> documentVideo(String tree, String id, String file);
+
+  /// The format of the subtitle at [url], whose address doesn't say (see [subtitleExts]).
+  Future<String> subtitleFormat(String url, Map<String, String> headers);
 }
 
 class _HlsRelay implements Relay {
@@ -100,6 +110,14 @@ class _HlsRelay implements Relay {
   Future<String> documentFile(String tree, String id, String file) =>
       HlsProxy.documentFile(tree, id, file);
 
+  @override
+  Future<String> subtitleFormat(String url, Map<String, String> headers) async {
+    try {
+      return sniffSubtitle(await fetchBytes(url, headers: headers));
+    } catch (_) {
+      return 'vtt'; // the player says so if it can't load it either
+    }
+  }
 
   @override
   Future<String> documentVideo(String tree, String id, String file) async =>
@@ -134,17 +152,32 @@ class StreamAddress {
     headers: stream.isHls || stream.isLocal ? null : stream.headers,
     hls: stream.isHls,
     // Loaded with the video, so switching to one later needs no reload.
-    subtitles: [
+    subtitles: await Future.wait([
       for (final s in stream.subtitles)
-        (url: await _route(stream, s.url, external), label: s.label),
-    ],
+        _route(
+          stream,
+          s.url,
+          external,
+          ext:
+              subtitleExtOf(s.url) ??
+              // An extension's subtitle often comes from an address with no extension; players need the format.
+              (s.url.startsWith('http')
+                  ? await relay.subtitleFormat(s.url, stream.headers)
+                  : null),
+        ).then((url) => (url: url, label: s.label)),
+    ]),
     audios: [
       for (final a in stream.audios)
         (url: await _route(stream, a.url, external), label: a.label),
     ],
   );
 
-  Future<String> _route(VideoStream stream, String url, bool external) => switch (DownloadLocation.parse(url)) {
+  Future<String> _route(
+    VideoStream stream,
+    String url,
+    bool external, {
+    String? ext,
+  }) => switch (DownloadLocation.parse(url)) {
     (DocumentFolder(:final tree, :final id), final file)
         when file.endsWith('.mp4') =>
       relay.documentVideo(tree, id, file),
@@ -158,7 +191,7 @@ class StreamAddress {
     _ => relay.remote(
       url,
       stream.headers,
-      Uri.parse(url).path.split('.').last,
+      ext ?? _extOf(url),
       key: url == stream.url ? stream.key : null,
     ),
   };

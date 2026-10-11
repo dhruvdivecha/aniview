@@ -23,6 +23,12 @@ class FakeRelay implements Relay {
       'doc:$tree:$id:$file';
 
   @override
+  Future<String> subtitleFormat(
+    String url,
+    Map<String, String> headers,
+  ) async => 'ass';
+
+  @override
   Future<String> documentVideo(String tree, String id, String file) async =>
       'content:$tree:$id:$file';
 }
@@ -137,6 +143,24 @@ void main() {
       });
     }
   }
+
+  test(
+    'a subtitle whose address has no extension goes by its contents',
+    () async {
+      final got = await address.forPlayer(
+        VideoStream(
+          's',
+          'https://cdn/v.mp4',
+          headers,
+          subtitles: [Subtitle('English', 'https://ext/api/subs?id=3')],
+        ),
+      );
+      expect(
+        got.subtitles.single.url,
+        'relay:ass:https://ext/api/subs?id=3:https://site',
+      );
+    },
+  );
 
   test('a stream\'s own key goes to its playlist, not its subtitles', () async {
     final got = await address.forPlayer(
