@@ -46,8 +46,8 @@ object GalleryExport {
     }
 
     // ponytail: MediaStore paths need Android 10+; older phones would need the storage permission flow
-    /** Copies the MP4 [video] into the gallery as [name]. */
-    fun save(context: Context, video: File, name: String) {
+    /** Copies the MP4 [video] into the gallery as [name]; returns the copy's address, to delete it by later. */
+    fun save(context: Context, video: File, name: String): String {
         if (Build.VERSION.SDK_INT < 29) throw IllegalStateException("Saving to the gallery needs Android 10 or newer")
         val resolver = context.contentResolver
         val uri = resolver.insert(
@@ -66,5 +66,11 @@ object GalleryExport {
             resolver.delete(uri, null, null)
             throw e
         }
+        return uri.toString()
+    }
+
+    /** Deletes a copy [save] made; gone already (deleted in the gallery) is fine. */
+    fun delete(context: Context, uri: String) {
+        context.contentResolver.delete(Uri.parse(uri), null, null)
     }
 }

@@ -36,6 +36,7 @@ class Download {
     this.skips = const [],
     this.storageUri,
     this.video,
+    this.galleryUri,
   });
 
   final Map media;
@@ -54,6 +55,9 @@ class Download {
 
   /// The episode's MP4 inside its folder; null while it's still (or, made before MP4s, only) an HLS playlist.
   String? video;
+
+  /// The copy saved to the gallery, deleted with the download.
+  String? galleryUri;
 
   /// "Title - Episode 3 (Dub)", safe as a file name.
   String get name =>
@@ -79,6 +83,7 @@ class Download {
     'error': error,
     'storageUri': storageUri,
     'video': video,
+    'galleryUri': galleryUri,
     'subtitles': [
       for (final s in subtitles) {'label': s.label, 'file': s.url},
     ],
@@ -108,6 +113,7 @@ class Download {
     error: json['error'],
     storageUri: json['storageUri'],
     video: json['video'],
+    galleryUri: json['galleryUri'],
     subtitles: [
       for (final s in json['subtitles'] as List? ?? const [])
         Subtitle(s['label'], s['file']),
@@ -475,6 +481,7 @@ class Downloads extends ChangeNotifier {
     final activeDone = _queue.remove(d) ? _activeDone?.future : null;
     _notify(save: true);
     await activeDone;
+    await _deleteGalleryCopy(d);
     try {
       if (d.storageUri case final tree?) {
         await AndroidApp.deleteDownloadFolder(tree, d.id);
@@ -487,12 +494,21 @@ class Downloads extends ChangeNotifier {
     }
   }
 
+  Future<void> _deleteGalleryCopy(Download d) async {
+    if (d.galleryUri case final uri?) {
+      try {
+        await AndroidApp.deleteFromGallery(uri);
+      } catch (_) {} // gone already, or no longer ours (a reinstall)
+    }
+  }
+
   Future<void> removeAll() async {
     final removed = [...items];
     final activeDone = _queue.clear() ? _activeDone?.future : null;
     _notify(save: true);
     await activeDone;
     for (final d in removed) {
+      await _deleteGalleryCopy(d);
       if (d.storageUri case final tree?) {
         try {
           await AndroidApp.deleteDownloadFolder(tree, d.id);
@@ -668,7 +684,10 @@ class Downloads extends ChangeNotifier {
   /// Copies a finished episode's MP4 to the gallery; returns why it couldn't, or null.
   Future<String?> _saveToGallery(Download d, Directory dir) async {
     try {
-      await AndroidApp.saveToGallery('${dir.path}/${d.video}', d.name);
+      d.galleryUri = await AndroidApp.saveToGallery(
+        '${dir.path}/${d.video}',
+        d.name,
+      );
       return 'Downloaded · saved to gallery';
     } on PlatformException catch (e) {
       return 'Downloaded · not saved to gallery: ${e.message}';

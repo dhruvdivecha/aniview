@@ -146,9 +146,12 @@ class AndroidApp {
   static Future<void> toMp4(String dir, String out) =>
       _app.invokeMethod('mp4', {'dir': dir, 'out': out});
 
-  /// Copies the MP4 [video] to the gallery as [name].
-  static Future<void> saveToGallery(String video, String name) =>
-      _app.invokeMethod('gallery', {'video': video, 'name': name});
+  /// Copies the MP4 [video] to the gallery as [name]; returns the copy's address, for [deleteFromGallery].
+  static Future<String?> saveToGallery(String video, String name) =>
+      _app.invokeMethod<String>('gallery', {'video': video, 'name': name});
+
+  static Future<void> deleteFromGallery(String uri) =>
+      _app.invokeMethod('ungallery', uri);
 
   /// The media volume, 0–1.
   static Future<double?> volume() => _volume.invokeMethod<double>('get');

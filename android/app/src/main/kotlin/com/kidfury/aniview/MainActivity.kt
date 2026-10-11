@@ -120,14 +120,18 @@ class MainActivity : FlutterActivity() {
                         java.io.File(call.argument<String>("dir")!!),
                         java.io.File(call.argument<String>("out")!!),
                     ) { error -> if (error == null) result.success(null) else result.error("mp4", error, null) }
-                    "gallery" -> Thread {
-                        val error = try {
-                            GalleryExport.save(this, java.io.File(call.argument<String>("video")!!), call.argument<String>("name")!!)
-                            null
+                    "gallery", "ungallery" -> Thread {
+                        try {
+                            val saved = if (call.method == "gallery") {
+                                GalleryExport.save(this, java.io.File(call.argument<String>("video")!!), call.argument<String>("name")!!)
+                            } else {
+                                GalleryExport.delete(this, call.arguments as String)
+                                null
+                            }
+                            runOnUiThread { result.success(saved) }
                         } catch (e: Exception) {
-                            e.message ?: "Couldn't save to the gallery"
+                            runOnUiThread { result.error(call.method, e.message ?: "Couldn't save to the gallery", null) }
                         }
-                        runOnUiThread { if (error == null) result.success(null) else result.error("gallery", error, null) }
                     }.start()
                     "open" -> {
                         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(call.arguments as String)))
