@@ -33,6 +33,17 @@ void main() {
     await tester.pumpWidget(app());
     expect(find.text('home'), findsOneWidget); // loads underneath
     expect(find.text('Welcome back'), findsOneWidget);
+    // Over the whole screen, not just the glow's square of it.
+    final cover = find
+        .ancestor(
+          of: find.text('Welcome back'),
+          matching: find.byType(Material),
+        )
+        .first;
+    expect(
+      tester.getRect(cover),
+      Offset.zero & tester.view.physicalSize / tester.view.devicePixelRatio,
+    );
     await tester.pump(const Duration(seconds: 3));
     expect(find.text('Welcome back'), findsNothing);
     expect(_built, 1); // the greeting going didn't build home again

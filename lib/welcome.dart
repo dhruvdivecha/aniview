@@ -99,115 +99,118 @@ class _WelcomeState extends State<Welcome> with SingleTickerProviderStateMixin {
           scale: Tween(begin: 1.03, end: 1.0).animate(out),
           child: widget.child,
         ),
-        // Lets go of taps and the remote as it fades, so nothing waits on it.
+        // Lets go of taps and the remote as it fades, so nothing waits on it. Filling the screen: left to size
+        // itself it would only be as big as the glow.
         if (_showing && !_done)
-          IgnorePointer(
-            child: FadeTransition(
-              opacity: ReverseAnimation(out),
-              child: Material(
-                color: scheme.surface,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // The brand's cyan, softly behind the mark.
-                    FadeTransition(
-                      opacity: _step(0, .4),
-                      child: Container(
-                        width: width * 1.8,
-                        height: width * 1.8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              seed.withValues(alpha: .16),
-                              seed.withValues(alpha: 0),
-                            ],
-                            stops: const [0, .62],
+          Positioned.fill(
+            child: IgnorePointer(
+              child: FadeTransition(
+                opacity: ReverseAnimation(out),
+                child: Material(
+                  color: scheme.surface,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // The brand's cyan, softly behind the mark.
+                      FadeTransition(
+                        opacity: _step(0, .4),
+                        child: Container(
+                          width: width * 1.8,
+                          height: width * 1.8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                seed.withValues(alpha: .16),
+                                seed.withValues(alpha: 0),
+                              ],
+                              stops: const [0, .62],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Stack(
-                          children: [
-                            // The "A" (the wordmark's first 29%) first…
-                            FadeTransition(
-                              opacity: mark,
-                              child: ScaleTransition(
-                                scale: Tween(
-                                  begin: .92,
-                                  end: 1.0,
-                                ).animate(mark),
-                                alignment: const Alignment(-.7, .1),
-                                child: _mask(wordmark, 0, .29, soft: 0),
-                              ),
-                            ),
-                            // …then "niView" wipes in after it.
-                            AnimatedBuilder(
-                              animation: rest,
-                              builder: (context, child) =>
-                                  _mask(child!, .29, .29 + .71 * rest.value),
-                              child: wordmark,
-                            ),
-                            // A glow passing over the play triangle in the "A".
-                            Positioned(
-                              left: width * .155 - width * .05,
-                              top: width / 3 * .52 - width * .05,
-                              child: AnimatedBuilder(
-                                animation: pulse,
-                                builder: (context, child) => Opacity(
-                                  opacity:
-                                      (1 - (pulse.value - .4).abs() / .6).clamp(
-                                        0.0,
-                                        1.0,
-                                      ) *
-                                      (pulse.value > 0 ? 1 : 0),
-                                  child: child,
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Stack(
+                            children: [
+                              // The "A" (the wordmark's first 29%) first…
+                              FadeTransition(
+                                opacity: mark,
+                                child: ScaleTransition(
+                                  scale: Tween(
+                                    begin: .92,
+                                    end: 1.0,
+                                  ).animate(mark),
+                                  alignment: const Alignment(-.7, .1),
+                                  child: _mask(wordmark, 0, .29, soft: 0),
                                 ),
-                                child: Container(
-                                  width: width * .1,
-                                  height: width * .1,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: RadialGradient(
-                                      colors: [
-                                        seed.withValues(alpha: .85),
-                                        seed.withValues(alpha: 0),
-                                      ],
+                              ),
+                              // …then "niView" wipes in after it.
+                              AnimatedBuilder(
+                                animation: rest,
+                                builder: (context, child) =>
+                                    _mask(child!, .29, .29 + .71 * rest.value),
+                                child: wordmark,
+                              ),
+                              // A glow passing over the play triangle in the "A".
+                              Positioned(
+                                left: width * .155 - width * .05,
+                                top: width / 3 * .52 - width * .05,
+                                child: AnimatedBuilder(
+                                  animation: pulse,
+                                  builder: (context, child) => Opacity(
+                                    opacity:
+                                        (1 - (pulse.value - .4).abs() / .6)
+                                            .clamp(0.0, 1.0) *
+                                        (pulse.value > 0 ? 1 : 0),
+                                    child: child,
+                                  ),
+                                  child: Container(
+                                    width: width * .1,
+                                    height: width * .1,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: RadialGradient(
+                                        colors: [
+                                          seed.withValues(alpha: .85),
+                                          seed.withValues(alpha: 0),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: isTv ? 32 : 22),
-                        FadeTransition(
-                          opacity: greeting,
-                          child: SlideTransition(
-                            position: Tween(
-                              begin: const Offset(0, .3),
-                              end: Offset.zero,
-                            ).animate(greeting),
-                            child: Text(
-                              _name == null
-                                  ? 'Welcome back'
-                                  : 'Welcome back, $_name',
-                              textAlign: TextAlign.center,
-                              style:
-                                  (isTv ? text.headlineSmall : text.titleMedium)
-                                      ?.copyWith(
-                                        color: scheme.onSurfaceVariant,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                            ],
+                          ),
+                          SizedBox(height: isTv ? 32 : 22),
+                          FadeTransition(
+                            opacity: greeting,
+                            child: SlideTransition(
+                              position: Tween(
+                                begin: const Offset(0, .3),
+                                end: Offset.zero,
+                              ).animate(greeting),
+                              child: Text(
+                                _name == null
+                                    ? 'Welcome back'
+                                    : 'Welcome back, $_name',
+                                textAlign: TextAlign.center,
+                                style:
+                                    (isTv
+                                            ? text.headlineSmall
+                                            : text.titleMedium)
+                                        ?.copyWith(
+                                          color: scheme.onSurfaceVariant,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
