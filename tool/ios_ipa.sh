@@ -35,9 +35,11 @@ mkdir -p "$out"
 stage=$(mktemp -d "$out/staging.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
 mkdir "$stage/Payload"
-ditto "$app" "$stage/Payload/Runner.app"
+# Do not serialize macOS extended attributes as ._* AppleDouble files in an IPA.
+ditto --norsrc --noextattr --noqtn "$app" "$stage/Payload/Runner.app"
 ipa="$out/AniView-$version-unsigned.ipa"
-ditto -c -k --keepParent "$stage/Payload" "$ipa"
+ditto -c -k --norsrc --noextattr --noqtn --keepParent "$stage/Payload" "$ipa"
 unzip -tq "$ipa"
+python3 tool/check_ios_bundle.py "$ipa"
 shasum -a 256 "$ipa"
 printf '\nRequires signing before installation: %s\n' "$ipa"

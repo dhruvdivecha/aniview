@@ -6,6 +6,7 @@ import plistlib
 import re
 import subprocess
 import sys
+import zipfile
 
 
 def require(condition, message):
@@ -33,6 +34,20 @@ if len(sys.argv) == 1:
     sys.exit(0)
 
 app = Path(sys.argv[1]).resolve()
+if app.suffix == ".ipa":
+    with zipfile.ZipFile(app) as archive:
+        names = archive.namelist()
+        require("Payload/Runner.app/Info.plist" in names, "Missing iPhone app payload")
+        metadata = [name for name in names if any(
+            part.startswith("._") or part == "__MACOSX" for part in Path(name).parts
+        )]
+        require(not metadata, "IPA contains macOS metadata inside its payload")
+        require(not any(name.endswith("/embedded.mobileprovision") for name in names),
+                "Unsigned IPA must not carry a provisioning profile")
+        require(archive.testzip() is None, "Corrupt IPA ZIP entry")
+    print("Unsigned IPA: payload present, ZIP integrity valid, no macOS metadata or provisioning profile")
+    sys.exit(0)
+
 with (app / "Info.plist").open("rb") as stream:
     built = plistlib.load(stream)
 require(built.get("CFBundleSupportedPlatforms") == ["iPhoneOS"], "Expected a device app, not a simulator")

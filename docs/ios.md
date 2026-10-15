@@ -14,12 +14,14 @@ iPhoneOS binaries, embedded media libraries and the iOS 15.0 minimum. FVM was un
 so these commands used the installed Flutter 3.47.6 SDK. Android native compilation has not been run
 because this Mac has no Android SDK; the shared regression suite passes and Android retains ExoPlayer.
 
-Installation and native playback are **not yet validated**. Sideloadly 0.70.1 rejected installation on
-an iPhone XR running iOS 18.7.9 with `ApplicationVerificationFailed` / `0xe8008001` for
-`objective_c.framework`. Neither uncompressed ZIP packaging nor thinning single-architecture universal
-frameworks resolved it. Those diagnostic variants are not changes to the source build workflow.
-An app icon appearing during a failed install does not establish that installation succeeded.
-Signing through Xcode or another signer is still required before the physical-device checklist can run.
+The device owner confirmed successful installation with Sideloadly 0.70.1 on an iPhone XR running
+iOS 18.7.9 after removing macOS AppleDouble metadata from the IPA. The packaging script now excludes
+that metadata, and the validator rejects archives containing `._*` or `__MACOSX` entries. Earlier
+packages failed with `ApplicationVerificationFailed` / `0xe8008001` for `objective_c.framework`;
+changing ZIP compression or thinning the binaries did not fix it. Do not use those earlier packages.
+An Xcode Personal Team Release archive and development IPA export also succeeded, and Apple's strict
+signature validation passed. Neither successful signing nor installation establishes native playback
+correctness; the physical-device checklist is still pending.
 
 The native integration test also remains unverified: the installed iOS 18.5 simulator aborts before Dart
 starts because its runtime cannot load `libswiftWebKit.dylib`. Do not count compilation of that test as a
