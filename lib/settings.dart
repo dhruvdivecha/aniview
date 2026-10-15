@@ -1267,6 +1267,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ]),
       _Group('Storage', [
+        if (Platform.isIOS)
+          const ListTile(
+            leading: Icon(Icons.folder_outlined),
+            title: Text('Downloads stay in AniView'),
+            subtitle: Text(
+              'Keep the app open while downloading. Saved episodes are available offline.',
+            ),
+          ),
         _Choice(
           title: 'Download quality',
           subtitle: 'Lower quality takes less space',
