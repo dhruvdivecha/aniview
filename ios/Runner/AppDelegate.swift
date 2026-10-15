@@ -19,5 +19,23 @@ import AVFAudio
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    let channel = FlutterMethodChannel(
+      name: "aniview/ios", binaryMessenger: engineBridge.applicationRegistrar.messenger())
+    channel.setMethodCallHandler { call, result in
+      guard call.method == "open" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      guard let address = call.arguments as? String, let url = URL(string: address),
+        ["https", "http"].contains(url.scheme?.lowercased() ?? ""), url.host != nil
+      else {
+        result(FlutterError(code: "url", message: "Expected a web URL", details: nil))
+        return
+      }
+      UIApplication.shared.open(url, options: [:]) { opened in
+        result(opened ? nil : FlutterError(
+          code: "open", message: "Could not open the browser", details: nil))
+      }
+    }
   }
 }

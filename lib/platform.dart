@@ -79,6 +79,7 @@ class AndroidApp {
 
   /// Opens [url] in the browser or whichever app handles it.
   static Future<void> open(String url) async {
+    if (Platform.isIOS) return IosApp.open(url);
     try {
       await _app.invokeMethod('open', url);
     } on MissingPluginException {
@@ -167,4 +168,19 @@ class AndroidApp {
 
   static Future<void> setVolume(double level) =>
       _volume.invokeMethod('set', level);
+}
+
+/// The small iOS bridge; playback itself uses media_kit's native plugin.
+class IosApp {
+  static const _channel = MethodChannel('aniview/ios');
+
+  static Future<void> open(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null ||
+        !{'https', 'http'}.contains(uri.scheme) ||
+        uri.host.isEmpty) {
+      throw ArgumentError.value(url, 'url', 'Expected a web URL');
+    }
+    return _channel.invokeMethod('open', url);
+  }
 }
