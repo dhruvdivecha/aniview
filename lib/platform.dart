@@ -7,6 +7,15 @@ import 'package:package_info_plus/package_info_plus.dart';
 /// they set it themselves (see test/flutter_test_config.dart).
 bool isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
 
+/// Android keeps Media3; iOS links media_kit_libs_ios_video, not a desktop binary.
+enum VideoBackend { exoPlayer, mediaKit }
+
+VideoBackend videoBackendFor(String os) => switch (os) {
+  'android' => VideoBackend.exoPlayer,
+  'ios' || 'macos' || 'linux' || 'windows' => VideoBackend.mediaKit,
+  _ => throw UnsupportedError('Video playback is not available on $os'),
+};
+
 /// The desktop's shortcut key: Cmd on a Mac, Ctrl on Windows and Linux.
 String get shortcutKey => Platform.isMacOS ? 'Cmd' : 'Ctrl';
 
