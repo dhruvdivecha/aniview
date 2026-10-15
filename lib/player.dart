@@ -483,7 +483,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         'dub': widget.dub,
         'downloaded': session.fromDownload,
       });
-      if (Settings.externalPlayer) {
+      if (Platform.isAndroid && Settings.externalPlayer) {
         final stopped = await _playExternal(streams.first, at: opened.at);
         if (!mounted) return;
         if (stopped == null) {
